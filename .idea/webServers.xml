@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="01476af2-a75e-4cce-bd27-ccb23c03d6ec" name="QWH" url="http://whmcs.dev.qwh.nl">
+        <fileTransfer host="whmcs.dev.qwh.nl" port="4000" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" shareSSLContext="true" />
+          </advancedOptions>
+          <option name="port" value="4000" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
