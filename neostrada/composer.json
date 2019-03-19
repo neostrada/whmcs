@@ -1,5 +1,7 @@
 {
     "require": {
-        "guzzlehttp/psr7": "^1.5"
+        "guzzlehttp/psr7": "^1.5",
+        "ext-json": "^1.5",
+        "ext-curl": "^7.1"
     }
 }

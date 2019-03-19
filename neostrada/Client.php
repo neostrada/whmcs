@@ -8,6 +8,8 @@ class Client
 {
     const ENDPOINT = 'https://api.neostrada.com/api';
 
+    const ALLOWED_YEARS = [1, 2, 3];
+
     /**
      * Guzzle Client.
      *
@@ -35,13 +37,6 @@ class Client
      * @var array
      */
     private $holders = [];
-
-    /**
-     * The allowed amount of years a domain can be registered.
-     *
-     * @var array
-     */
-    private $allowedYears = [1, 2, 3];
 
     /**
      * Client constructor.
@@ -402,11 +397,11 @@ class Client
     {
         $rc = null;
 
-        try {
-            $response = $this->client->delete("domain/delete/{$domain}");
+        $response = $this->client->delete("domain/delete/{$domain}");
 
-            $rc = $this->success($response);
-        } catch (BadResponseException $exception) {}
+        if ($this->success($response)) {
+            $rc = true;
+        }
 
         return $rc;
     }
@@ -549,31 +544,33 @@ class Client
     {
         $rc = null;
 
-        list($sld, $tld) = explode('.', $domain, 2);
+        $parts = explode('.', $domain, 2);
 
-        // Default to one year if the provided amount of years is no allowed
-        if (!in_array($years, [$this->allowedYears])) {
-            $years = 1;
-        }
-
-        if ($extension = $this->getExtension($tld)) {
-            $payload = [
-                'extension_id' => $extension['extension_id'],
-                'domain' => $domain,
-                'holder_id' => $holderId,
-                'year' => $years
-            ];
-
-            // Add the auth code to the request to make it a transfer
-            if (!empty($authCode)) {
-                $payload['authcode'] = $authCode;
+        if (count($parts) == 2) {
+            // Default to one year if the provided amount of years is no allowed
+            if (!in_array($years, self::ALLOWED_YEARS)) {
+                $years = 1;
             }
 
-            try {
+            if ($extension = $this->getExtension($parts[1])) {
+                $payload = [
+                    'extension_id' => $extension['extension_id'],
+                    'domain' => $domain,
+                    'holder_id' => $holderId,
+                    'year' => $years
+                ];
+
+                // Add the auth code to the request to make it a transfer
+                if (!empty($authCode)) {
+                    $payload['authcode'] = $authCode;
+                }
+
                 $response = $this->client->post('orders/add/', $payload);
 
-                $rc = $this->success($response);
-            } catch (BadResponseException $exception) {}
+                if ($this->success($response)) {
+                    $rc = true;
+                }
+            }
         }
 
         return $rc;
