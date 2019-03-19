@@ -103,6 +103,9 @@ class Client
             $response = $this->client->post('holders/add', $holder);
 
             if (($holder = $this->getResult($response)) && isset($holder['results']['holder_id'])) {
+                // Add holder to the holder cache
+                $this->holders[] = $holder['results'];
+
                 $rc = $holder['results']['holder_id'];
             }
         }

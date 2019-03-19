@@ -175,6 +175,50 @@ function neostrada_SaveNameservers($params)
 }
 
 /**
+ * Add the first and last name to the holder, because the API only
+ * returns the full name.
+ *
+ * @param Client $client
+ * @param $holderToAlter
+ * @return array|null
+ */
+function addFirstAndLastName(Client $client, $holderToAlter)
+{
+    $names = [
+        'firstname' => '',
+        'lastname' => ''
+    ];
+
+    if ($holders = $client->getHolders()) {
+        foreach ($holders as $holder) {
+            $name = $holder['firstname'];
+
+            if (!empty($holder['center'])) {
+                $name .= " {$holder['center']}";
+            }
+
+            $name .= " {$holder['lastname']}";
+
+            if ($name == $holderToAlter['name']) {
+                $names = [
+                    'firstname' => $holder['firstname'],
+                    'lastname' => $holder['lastname']
+                ];
+                break;
+            }
+        }
+    }
+
+    $rc = null;
+
+    if ($names) {
+        $rc = array_merge($holderToAlter, $names);
+    }
+
+    return $rc;
+}
+
+/**
  * Get a domain's WHOIS details.
  *
  * @param $params
@@ -186,15 +230,10 @@ function neostrada_GetContactDetails($params)
 
     $rc = ['error' => 'Could not get contact details'];
 
-    if (
-        ($domain = $client->getDomain($params['domainname'])) &&
-        isset($domain['registrant']) &&
-        isset($domain['tech']) &&
-        isset($domain['admin'])
-    ) {
-        $registrant = $domain['registrant'];
-        $tech = $domain['tech'];
-        $admin = $domain['admin'];
+    if ($domain = $client->getDomain($params['domainname'])) {
+        $registrant = addFirstAndLastName($client, $domain['registrant']);
+        $tech = addFirstAndLastName($client, $domain['tech']);
+        $admin = addFirstAndLastName($client, $domain['admin']);
 
         $rc = [
             'Registrant' => [
@@ -209,8 +248,8 @@ function neostrada_GetContactDetails($params)
                 'Phone Number' => $registrant['']
             ],
             'Technical' => [
-                'First Name' => $tech[''],
-                'Last Name' => $tech[''],
+                'First Name' => $tech['firstname'],
+                'Last Name' => $tech['lastname'],
                 'Company Name' => $tech['company'],
                 'Email Address' => $tech['email'],
                 'Address 1' => $tech['street'],
@@ -220,8 +259,8 @@ function neostrada_GetContactDetails($params)
                 'Phone Number' => $tech['']
             ],
             'Admin' => [
-                'First Name' => $admin[''],
-                'Last Name' => $admin[''],
+                'First Name' => $admin['firstname'],
+                'Last Name' => $admin['lastname'],
                 'Company Name' => $admin['company'],
                 'Email Address' => $admin['email'],
                 'Address 1' => $admin['street'],
