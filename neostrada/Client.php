@@ -32,6 +32,13 @@ class Client
     private $extensions = [];
 
     /**
+     * Domain cache.
+     *
+     * @var array
+     */
+    private $domain = [];
+
+    /**
      * Holder cache.
      *
      * @var array
@@ -71,7 +78,7 @@ class Client
         $response = $this->client->get('holders');
 
         if (($holders = $this->getResult($response)) && isset($holders['results'])) {
-            $rc = $this->holders = $holders['results'];
+            $rc = $holders['results'];
         }
 
         return $rc;
@@ -96,6 +103,38 @@ class Client
             }
 
             $response = $this->client->post('holders/add', $holder);
+
+            if (($holder = $this->getResult($response)) && isset($holder['results']['holder_id'])) {
+                // Add holder to the holder cache
+                $this->holders[] = $holder['results'];
+
+                $rc = $holder['results']['holder_id'];
+            }
+        }
+
+        return $rc;
+    }
+
+    /**
+     * Update a holder.
+     *
+     * @param $id
+     * @param $holder
+     * @return null
+     */
+    public function updateHolder($id, $holder)
+    {
+        $rc = null;
+
+        if ($countryId = $this->getCountryId($holder['country_code'])) {
+            $holder['country_id'] = $countryId;
+            $holder['is_module'] = true;
+
+            if (isset($holder['company']) && empty($holder['company'])) {
+                unset($holder['company']);
+            }
+
+            $response = $this->client->patch("holders/edit/{$id}", $holder);
 
             if (($holder = $this->getResult($response)) && isset($holder['results']['holder_id'])) {
                 // Add holder to the holder cache
@@ -372,16 +411,39 @@ class Client
      * Get a domain.
      *
      * @param $domain
-     * @return array|mixed
+     * @param bool $refresh
+     * @return array|mixed|null
      */
-    public function getDomain($domain)
+    public function getDomain($domain, $refresh = false)
     {
+        if (!empty($this->domain) && !$refresh) {
+            return $this->domain;
+        }
+
         $rc = null;
 
         $response = $this->client->get("domain/{$domain}");
 
         if (($domain = $this->getResult($response)) && isset($domain['results'])) {
-            $rc = $domain['results'];
+            $rc = $this->domain = $domain['results'];
+        }
+
+        return $rc;
+    }
+
+    /**
+     * Get all domains.
+     *
+     * @return mixed|null
+     */
+    public function getDomains()
+    {
+        $rc = null;
+
+        $response = $this->client->get('domains');
+
+        if (($domains = $this->getResult($response)) && isset($domains['results'])) {
+            $rc = $domains['results'];
         }
 
         return $rc;
@@ -435,7 +497,9 @@ class Client
      */
     public function isAvailable($domain)
     {
-        return ($whois = $this->whois($domain)) && isset($whois['available']) && (bool) $whois['available'] === true;
+        return ($whois = $this->whois($domain)) &&
+            isset($whois[0]['available']) &&
+            (bool) $whois[0]['available'] === true;
     }
 
     /**
@@ -523,6 +587,28 @@ class Client
             foreach ($countries as $country) {
                 if (isset($country['code']) && $country['code'] == $countryCode && isset($country['country_id'])) {
                     $rc = $country['country_id'];
+                    break;
+                }
+            }
+        }
+
+        return $rc;
+    }
+
+    /**
+     * Get a country by its ID.
+     *
+     * @param $countryId
+     * @return null
+     */
+    public function getCountryById($countryId)
+    {
+        $rc = null;
+
+        if ($countries = $this->getCountries()) {
+            foreach ($countries as $country) {
+                if (isset($country['country_id']) && $country['country_id'] == $countryId) {
+                    $rc = $country;
                     break;
                 }
             }

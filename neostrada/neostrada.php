@@ -176,46 +176,50 @@ function neostrada_SaveNameservers($params)
 
 /**
  * Add the first and last name to the holder, because the API only
- * returns the full name.
+ * returns the full name. Also get a usable phone number.
+ *
+ * This is a VERY hacky way of getting this information. Don't try this
+ * at home. ;-)
  *
  * @param Client $client
  * @param $holderToAlter
  * @return array|null
  */
-function addFirstAndLastName(Client $client, $holderToAlter)
+function getUsableContact(Client &$client, $holderToAlter)
 {
-    $names = [
-        'firstname' => '',
-        'lastname' => ''
-    ];
-
     if ($holders = $client->getHolders()) {
-        foreach ($holders as $holder) {
-            $name = $holder['firstname'];
+        $name = $holderToAlter['name'];
 
-            if (!empty($holder['center'])) {
-                $name .= " {$holder['center']}";
+        foreach ($holders as $holder) {
+            if (strpos($name, $holder['firstname']) !== false) {
+                $holderToAlter['firstname'] = $holder['firstname'];
+
+                $name = trim(str_ireplace($holder['firstname'], '', $name));
             }
 
-            $name .= " {$holder['lastname']}";
+            // Determine which string to use to find the last name in
+            if (strlen($name) < strlen($holder['lastname'])) {
+                $haystack = $holder['lastname'];
+                $needle = $name;
+            } else {
+                $haystack = $name;
+                $needle = $holder['lastname'];
+            }
 
-            if ($name == $holderToAlter['name']) {
-                $names = [
-                    'firstname' => $holder['firstname'],
-                    'lastname' => $holder['lastname']
-                ];
-                break;
+            if (strpos($haystack, $needle) !== false) {
+                $holderToAlter['lastname'] = $holder['lastname'];
+            }
+
+            // Get the phone number without its country code
+            if (!empty($holderToAlter['phone'])) {
+                $phoneNumber = explode('.', $holderToAlter['phone'], 2);
+
+                $holderToAlter['phone'] = $phoneNumber[1] ?: $holderToAlter['phone'];
             }
         }
     }
 
-    $rc = null;
-
-    if ($names) {
-        $rc = array_merge($holderToAlter, $names);
-    }
-
-    return $rc;
+    return $holderToAlter;
 }
 
 /**
@@ -231,9 +235,9 @@ function neostrada_GetContactDetails($params)
     $rc = ['error' => 'Could not get contact details'];
 
     if ($domain = $client->getDomain($params['domainname'])) {
-        $registrant = addFirstAndLastName($client, $domain['registrant']);
-        $tech = addFirstAndLastName($client, $domain['tech']);
-        $admin = addFirstAndLastName($client, $domain['admin']);
+        $registrant = getUsableContact($client, $domain['registrant']);
+        $tech = getUsableContact($client, $domain['tech']);
+        $admin = getUsableContact($client, $domain['admin']);
 
         $rc = [
             'Registrant' => [
@@ -245,7 +249,7 @@ function neostrada_GetContactDetails($params)
                 'City' => $registrant['city'],
                 'Postcode' => $registrant['zipcode'],
                 'Country' => $registrant['country_code'],
-                'Phone Number' => $registrant['']
+                'Phone Number' => $registrant['phone']
             ],
             'Technical' => [
                 'First Name' => $tech['firstname'],
@@ -256,7 +260,7 @@ function neostrada_GetContactDetails($params)
                 'City' => $tech['city'],
                 'Postcode' => $tech['zipcode'],
                 'Country' => $tech['country_code'],
-                'Phone Number' => $tech['']
+                'Phone Number' => $tech['phone']
             ],
             'Admin' => [
                 'First Name' => $admin['firstname'],
@@ -267,7 +271,7 @@ function neostrada_GetContactDetails($params)
                 'City' => $admin['city'],
                 'Postcode' => $admin['zipcode'],
                 'Country' => $admin['country_code'],
-                'Phone Number' => $admin['']
+                'Phone Number' => $admin['phone']
             ]
         ];
     }
