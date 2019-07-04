@@ -525,6 +525,20 @@ function neostrada_TransferSync($params)
 }
 
 /**
+ * Renew a domain.
+ *
+ * Domains are always renewed, and it's currently not possible to manually renew
+ * a domain. This function always results in a success to prevent WHMCS from
+ * creating tasks for the admin to check domain renewals.
+ *
+ * @return array
+ */
+function neostrada_RenewDomain($params)
+{
+    return ['success' => true];
+}
+
+/**
  * Client Area Custom Button Array.
  *
  * Allows you to define additional actions your module supports.
