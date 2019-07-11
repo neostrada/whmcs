@@ -403,7 +403,7 @@ function neostrada_SaveDNS($params)
 
     if ($records = $client->getDnsRecords($domain)) {
         foreach ($records as $record) {
-            $deleteRecords[] = $record['id'];
+            $deleteRecords[$record['id']] = $record['id'];
         }
     }
 
@@ -417,7 +417,7 @@ function neostrada_SaveDNS($params)
             ];
 
             // This record can be updated, so remove it from the array of records to delete
-            unset($deleteRecords[array_search($record['recid'], $deleteRecords)]);
+            unset($deleteRecords[$record['id']]);
         }
 
         // Add a new record
@@ -480,18 +480,21 @@ function neostrada_Sync($params)
     $rc = ['error' => "Could not sync domain {$domain}"];
 
     if ($domain = $client->getDomain($domain)) {
-        $expiresAt = DateTime::createFromFormat(DATE_ATOM, $domain['paid_until']);
-        $now = new DateTime();
+        if ($expiresAt = DateTime::createFromFormat(DateTime::ATOM, $domain['paid_until'])) {
+            $now = new DateTime();
 
-        $rc = [
-            'expirydate' => $expiresAt->format('Y-m-d'),
-            'active' => $domain['status'] == 'active',
-            'expired' => false,
-            'transferredAway' => false
-        ];
+            $rc = [
+                'expirydate' => $expiresAt->format('Y-m-d'),
+                'active' => $domain['status'] == 'active',
+                'expired' => false,
+                'transferredAway' => false
+            ];
 
-        if ($expiresAt < $now) {
-            $rc['expired'] = true;
+            if ($expiresAt < $now) {
+                $rc['expired'] = true;
+            }
+        } else {
+            // TODO: log content of $domain['paid_until'] if debug is enabled
         }
     }
 
@@ -513,12 +516,12 @@ function neostrada_TransferSync($params)
     $rc = [];
 
     if ($domain = $client->getDomain($params['domain'])) {
-        $expiresAt = DateTime::createFromFormat(DATE_ATOM, $domain['paid_until']);
-
-        $rc = [
-            'completed' => true,
-            'expirydate' => $expiresAt->format('Y-m-d')
-        ];
+        if ($expiresAt = DateTime::createFromFormat(DateTime::ATOM, $domain['paid_until'])) {
+            $rc = [
+                'completed' => true,
+                'expirydate' => $expiresAt->format('Y-m-d')
+            ];
+        }
     }
 
     return $rc;
