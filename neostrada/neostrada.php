@@ -54,22 +54,27 @@ function neostrada_RegisterDomain($params)
 {
     $client = new Client($params['key']);
 
-    $holderId = $client->createHolder([
+    $holder = [
         'company' => $params['companyname'],
         'firstname' => $params['firstname'],
         'lastname' => $params['lastname'],
-        'phone_number' => $params['phonenumber'],
         'street' => $params['address1'],
         'zipcode' => $params['postcode'],
         'city' => $params['city'],
-        'country_code' => $params['countrycode'],
         'email' => $params['email']
-    ]);
+    ];
 
-    $rc = ['error' => 'Could not create contact'];
+    if (!$holderId = $client->findHolderId($holder)) {
+        $holder['phone_number'] = $params['phonenumber'];
+        $holder['country_code'] = $params['countrycode'];
+
+        $holderId = $client->createHolder($holder);
+    }
+
+    $rc = ['error' => "Could not create contact '{$params['firstname']} {$params['lastname']}'"];
 
     if ($holderId) {
-        $rc = ['error' => 'Could not register domain'];
+        $rc = ['error' => "Could not register domain '{$params['domainname']}'"];
 
         if ($client->order($params['domainname'], $holderId, $params['regperiod'])) {
             $rc = ['success' => true];
@@ -89,22 +94,27 @@ function neostrada_TransferDomain($params)
 {
     $client = new Client($params['key']);
 
-    $holderId = $client->createHolder([
+    $holder = [
         'company' => $params['companyname'],
         'firstname' => $params['firstname'],
         'lastname' => $params['lastname'],
-        'phone_number' => $params['phonenumber'],
         'street' => $params['address1'],
         'zipcode' => $params['postcode'],
         'city' => $params['city'],
-        'country_code' => $params['countrycode'],
         'email' => $params['email']
-    ]);
+    ];
 
-    $rc = ['error' => 'Could not create contact'];
+    if (!$holderId = $client->findHolderId($holder)) {
+        $holder['phone_number'] = $params['phonenumber'];
+        $holder['country_code'] = $params['countrycode'];
+
+        $holderId = $client->createHolder($holder);
+    }
+
+    $rc = ['error' => "Could not create contact '{$params['firstname']} {$params['lastname']}'"];
 
     if ($holderId) {
-        $rc = ['error' => 'Could not register domain'];
+        $rc = ['error' => "Could not register domain '{$params['domainname']}'"];
 
         if ($client->order($params['domainname'], $holderId, $params['regperiod'], $params['transfersecret'])) {
             $rc = ['success' => true];
