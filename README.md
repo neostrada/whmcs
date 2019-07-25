@@ -2,9 +2,6 @@
 
 This module enables resellers of Neostrada to sell domain registrations and transfers through WHMCS.
 
-### Disclamer
-This module is currently in beta. It is strongly recommended to use this module in your test environment only. Using it in production is at your own risk.
-
 ### Implemented features
 :white_check_mark: Register, transfer and delete domains<br>
 :white_check_mark: Manage a domain's nameservers<br>
