@@ -76,7 +76,16 @@ function neostrada_RegisterDomain($params)
     if ($holderId) {
         $rc = ['error' => "Could not register domain '{$params['domainname']}'"];
 
-        if ($client->order($params['domainname'], $holderId, $params['regperiod'])) {
+        $nameservers = [$params['ns1'], $params['ns2'], $params['ns3']];
+
+        $order = $client->order(
+            $params['domainname'],
+            $holderId,
+            $params['regperiod'],
+            $nameservers
+        );
+
+        if ($order) {
             $rc = ['success' => true];
         }
     }
@@ -116,7 +125,17 @@ function neostrada_TransferDomain($params)
     if ($holderId) {
         $rc = ['error' => "Could not register domain '{$params['domainname']}'"];
 
-        if ($client->order($params['domainname'], $holderId, $params['regperiod'], $params['transfersecret'])) {
+        $nameservers = [$params['ns1'], $params['ns2'], $params['ns3']];
+
+        $order = $client->order(
+            $params['domainname'],
+            $holderId,
+            $params['regperiod'],
+            $nameservers,
+            $params['transfersecret']
+        );
+
+        if ($order) {
             $rc = ['success' => true];
         }
     }
@@ -476,36 +495,77 @@ function neostrada_RequestDelete($params)
 }
 
 /**
+ * Get details about the domain from the WHMCS database.
+ *
+ * @param $domainId
+ * @return array
+ */
+function getDomainDetails($domainId)
+{
+    $result = localAPI('GetClientsDomains', ['domainid' => $domainId]);
+
+    $rc = [];
+
+    if (isset($result['domains']['domain'][0]) && $result['domains']['domain'][0]['id'] == $domainId) {
+        $rc = $result['domains']['domain'][0];
+    }
+
+    return $rc;
+}
+
+/**
  * Sync existing domain registrations.
  *
  * @param $params
  * @return array
+ * @throws Exception
  */
 function neostrada_Sync($params)
 {
     $client = new Client($params['key']);
 
-    $domain = $params['domain'];
+    if (!$domainDetails = getDomainDetails($params['domainid'])) {
+        return ['error' => 'Could not get domain details for '.$params['domain']];
+    }
 
-    $rc = ['error' => "Could not sync domain {$domain}"];
+    $autoRenew = $domainDetails['donotrenew'] == 0;
 
-    if ($domain = $client->getDomain($domain)) {
-        if ($expiresAt = DateTime::createFromFormat(DateTime::ATOM, $domain['paid_until'])) {
-            $now = new DateTime();
+    $rc = ['error' => "Could not sync domain {$params['domain']}"];
 
-            $rc = [
-                'expirydate' => $expiresAt->format('Y-m-d'),
-                'active' => $domain['status'] == 'active',
-                'expired' => false,
-                'transferredAway' => false
-            ];
+    $domain = $client->getDomain($params['domain']);
 
-            if ($expiresAt < $now) {
-                $rc['expired'] = true;
+    if ($domain && $expiresAt = DateTime::createFromFormat(DateTime::ATOM, $domain['paid_until'])) {
+        $active = $domain['status'] == 'active';
+
+        // Delete or reactivate the domain based on the auto renew status of the domain
+        if (!$autoRenew && $active) {
+            if (!$client->deleteDomain($params['domain'])) {
+                return ['error' => 'Could not deactivate auto renewal for '.$params['domain']];
             }
-        } else {
-            // TODO: log content of $domain['paid_until'] if debug is enabled
+
+            $active = false;
+        } elseif ($autoRenew && !$active) {
+            if (!$client->reactivateDomain($params['domain'])) {
+                return ['error' => 'Could not activate auto renewal for '.$params['domain']];
+            }
+
+            $active = true;
         }
+
+        $expired = false;
+
+        if ($expiresAt < new DateTime()) {
+            // Force $active to be false when the expiry has passed
+            $active = false;
+            $expired = true;
+        }
+
+        $rc = [
+            'expirydate' => $expiresAt->format('Y-m-d'),
+            'active' => $active,
+            'expired' => $expired,
+            'transferredAway' => false
+        ];
     }
 
     return $rc;
@@ -525,13 +585,13 @@ function neostrada_TransferSync($params)
 
     $rc = [];
 
-    if ($domain = $client->getDomain($params['domain'])) {
-        if ($expiresAt = DateTime::createFromFormat(DateTime::ATOM, $domain['paid_until'])) {
-            $rc = [
-                'completed' => true,
-                'expirydate' => $expiresAt->format('Y-m-d')
-            ];
-        }
+    $domain = $client->getDomain($params['domain']);
+
+    if ($domain && $expiresAt = DateTime::createFromFormat(DateTime::ATOM, $domain['paid_until'])) {
+        $rc = [
+            'completed' => true,
+            'expirydate' => $expiresAt->format('Y-m-d')
+        ];
     }
 
     return $rc;
@@ -549,31 +609,4 @@ function neostrada_TransferSync($params)
 function neostrada_RenewDomain($params)
 {
     return ['success' => true];
-}
-
-/**
- * Client Area Custom Button Array.
- *
- * Allows you to define additional actions your module supports.
- * In this example, we register a Push Domain action which triggers
- * the `neostrada_push` function when invoked.
- *
- * @return array
- */
-function neostrada_ClientAreaCustomButtonArray()
-{
-    return [];
-}
-
-/**
- * Client Area Allowed Functions.
- *
- * Only the functions defined within this function or the Client Area
- * Custom Button Array can be invoked by client level users.
- *
- * @return array
- */
-function neostrada_ClientAreaAllowedFunctions()
-{
-    return [];
 }
