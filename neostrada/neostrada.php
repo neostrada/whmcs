@@ -476,6 +476,25 @@ function neostrada_SaveDNS($params)
 }
 
 /**
+ * Get the EPP code for the domain.
+ *
+ * @param $params
+ * @return array
+ */
+function neostrada_GetEPPCode($params)
+{
+    $client = new Client($params['key']);
+
+    $domain = $client->getDomain($params['domainname']);
+
+    if ($domain && isset($domain['auth_code'])) {
+        return ['eppcode' => $domain['auth_code']];
+    }
+
+    return ['error' => 'Could not fetch EPP ode'];
+}
+
+/**
  * Delete a domain.
  *
  * @param $params
