@@ -9,8 +9,8 @@ This module enables resellers of Neostrada to sell domain registrations and tran
 :white_check_mark: Update a domain's contact details<br>
 :white_check_mark: Sync information about existing domains (like the expiration date)<br>
 :white_check_mark: Enable/disable automatic domain renewal<br>
+:white_check_mark: Get a domain's transfer token<br>
 :x: Sync a domain's transfer status<br>
-:x: Get a domain's transfer token<br>
 :x: Renew a domain<br>
 :x: Lock or unlock a domain
 
