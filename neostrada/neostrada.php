@@ -76,7 +76,7 @@ function neostrada_RegisterDomain($params)
     if ($holderId) {
         $rc = ['error' => "Could not register domain '{$params['domainname']}'"];
 
-        $nameservers = [$params['ns1'], $params['ns2'], $params['ns3']];
+        $nameservers = array_filter([$params['ns1'], $params['ns2'], $params['ns3']]);
 
         $order = $client->order(
             $params['domainname'],
@@ -123,9 +123,9 @@ function neostrada_TransferDomain($params)
     $rc = ['error' => "Could not create contact '{$params['firstname']} {$params['lastname']}'"];
 
     if ($holderId) {
-        $rc = ['error' => "Could not register domain '{$params['domainname']}'"];
+        $rc = ['error' => "Could not transfer domain '{$params['domainname']}'"];
 
-        $nameservers = [$params['ns1'], $params['ns2'], $params['ns3']];
+        $nameservers = array_filter([$params['ns1'], $params['ns2'], $params['ns3']]);
 
         $order = $client->order(
             $params['domainname'],
