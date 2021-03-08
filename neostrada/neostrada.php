@@ -196,6 +196,8 @@ function neostrada_SaveNameservers($params)
         if ($client->updateNameservers($domain, $nameservers)) {
             $rc = ['success' => true];
         }
+    } else {
+        $rc = ['error' => 'Nameservers are empty'];
     }
 
     return $rc;
