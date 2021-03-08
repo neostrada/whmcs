@@ -255,6 +255,23 @@ class Client
 
         return $rc;
     }
+    
+    public function updateNameservers($domain, $nameservers)
+    {
+        $rc = null;
+
+        $response = $this->client->patch("nameservers/{$domain}", [
+            'json' => [
+                'nameservers' => $nameservers
+            ]
+        ]);
+
+        if ($this->success($response)) {
+            $rc = true;
+        }
+
+        return $rc;
+    }
 
     /**
      * Delete the specified nameservers for the specified domain.
