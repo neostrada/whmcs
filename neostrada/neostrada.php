@@ -193,9 +193,7 @@ function neostrada_SaveNameservers($params)
     $rc = ['error' => 'Could not save nameservers'];
 
     if (!empty($nameservers)) {
-        $client->deleteCurrentNameservers($domain);
-
-        if ($client->addNameservers($domain, $nameservers)) {
+        if ($client->updateNameservers($domain, $nameservers)) {
             $rc = ['success' => true];
         }
     }
