@@ -261,9 +261,7 @@ class Client
         $rc = null;
 
         $response = $this->client->patch("nameservers/{$domain}", [
-            'json' => [
-                'nameservers' => $nameservers
-            ]
+            'nameservers' => $nameservers
         ]);
 
         if ($this->success($response)) {
